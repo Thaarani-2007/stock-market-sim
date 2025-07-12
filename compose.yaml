@@ -1,0 +1,39 @@
+services:
+  client:
+    image: "node:22-alpine"
+    volumes:
+      - ./client:/app
+    ports:
+      - 3000:3000
+    working_dir: /app
+    command: ["npm", "run", "dev"]
+    environment:
+      - WATCHPACK_POLLING=true
+  
+  server:
+    build: ./server
+    volumes:
+      - ./server:/app
+    ports:
+      - 8000:8000
+    environment:
+      - ADMIN_USER=ecell_admin
+      - ADMIN_PASSWORD=ecell_admin
+      - SECRET=insecure_key
+      - DB_URL=postgresql://sms:password@sms-db-1/sms
+      - CACHE_HOST=cache
+      - CACHE_PORT=6379
+  
+  cache:
+    image: "redis:alpine"
+    ports:
+      - 6379:6379
+
+  db:
+    image: "postgres:alpine"
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_DB=sms
+      - POSTGRES_USER=sms
+      - POSTGRES_PASSWORD=password
