@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException, status, Depends
 
 from data.db import get_session
 from . import forms, models
+from stock.models import Stock
 import middleware
 
 router = APIRouter()
@@ -58,3 +59,23 @@ def get_info(
             )
         ])  
     }
+
+@router.get('/transactions')
+def get_transactions(
+    user: models.User = Depends(middleware.get_user),
+    session: sql.Session = Depends(get_session)
+):
+    res = []
+    for transaction, stock in session.exec(
+        sql.select(models.Transaction, Stock)
+        .join(Stock)
+        .where(models.Transaction.user == user.uid)
+        .order_by(models.Transaction.timestamp.desc()) # type: ignore
+    ):
+        res.append({
+            "stock": stock.name,
+            "units": transaction.num_units,
+            "price": transaction.price,
+        })
+    
+    return res
