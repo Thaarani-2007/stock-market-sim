@@ -11,12 +11,14 @@ router = APIRouter()
 @router.get('/leaderboard')
 def get_leaderboard(session: db.sql.Session = Depends(db.get_session)):
     res = {}
+    for user in session.exec(db.sql.select(user_models.User).where(user_models.User.verified == True)).all():
+        res[user.username] = user.balance
+
     for user, holding in session.exec(
         db.sql.select(user_models.User, user_models.Holding)
         .join(user_models.Holding)
         .where(user_models.User.verified == True)
     ).all():
-        if not res.get(user.username, False): res[user.username] = user.balance
         cache_entry = Cache().get(holding.stock.hex)
         res[user.username] += holding.quantity * \
             (stock_models.StockEntry.from_json(holding.stock, cache_entry).close if cache_entry else 0)
@@ -27,7 +29,7 @@ def get_leaderboard(session: db.sql.Session = Depends(db.get_session)):
 
 
 from data.socket_pool import SocketPool
-import asyncio, random
+import asyncio
 from typing import Dict, Any
 NEWS_POOL = SocketPool()
 
